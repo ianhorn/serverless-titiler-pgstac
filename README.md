@@ -35,7 +35,7 @@ Optional - list your layers
 
 ```bash
 # run list script
-./list.py | jq
+./titiler-pgstac-lambda-layer/list.py | jq
 ```
 
 You should get a response like this.
