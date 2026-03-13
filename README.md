@@ -29,7 +29,7 @@ You should now have a package.zip file.  Deploy that to AWS as a Lambda Layer
 
 ```bash
 # deploy lambda layer
-./scripts/deploy.py
+./titiler-pgstac-lambda-layer/scripts/deploy.py
 ```
 Optional - list your layers
 
