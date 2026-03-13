@@ -1,0 +1,9 @@
+services:
+  titiler-pgstac:
+    image: ianhorn/titiler-pgstac-lambda-layer
+    container_name: titiler-pgstac
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["bash", "create-lambda-layer.sh"]

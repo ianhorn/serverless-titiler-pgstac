@@ -1,0 +1,119 @@
+# serverless-titiler-pgstac
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  Bucket:
+    Type: CommaDelimitedList
+    Default: '*'
+  DisableCOG:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  DisableMosaic:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  DisableSTAC:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  PGHost:
+    Type: String
+    Description: PostgreSQL host
+  PGPort:
+    Type: Number
+    Default: 5432
+    Description: PostgreSQL port
+  PGDatabase:
+    Type: String
+    Description: PostgreSQL database name
+  PGUser:
+    Type: String
+    Description: PgSTAC user
+  PGPassword:
+    Type: String
+    NoEcho: true
+    Description: PgSTAC password
+  LayerVersion:
+    Type: String
+    Default: 2
+Resources:
+  TiTiler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.14
+      Handler: index.handler
+      Description: 'Titiler: Dynamic tiler'
+      Layers:
+      - Fn::Sub: arn:aws:lambda:us-west-2:405369522825:layer:titiler-pgstac:${LayerVersion}
+      InlineCode: |
+        import logging
+        from mangum import Mangum
+        from titiler.pgstac.main import app
+
+        logging.getLogger("mangum.lifespan").setLevel(logging.ERROR)
+        logging.getLogger("mangum.http").setLevel(logging.ERROR)
+
+        handler = Mangum(app, lifespan="auto")
+      MemorySize: 1024
+      Timeout: 10
+      Policies:
+      - AWSLambdaExecute
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:HeadObject
+          Resource:
+            Fn::Split:
+            - ','
+            - Fn::Join:
+              - ''
+              - - 'arn:aws:s3:::'
+                - Fn::Join:
+                  - '/*,arn:aws:s3:::'
+                  - Ref: Bucket
+                - /*
+      Environment:
+        Variables:
+          CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF,.tiff
+          GDAL_CACHEMAX: 200
+          GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+          GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: true
+          GDAL_HTTP_MULTIPLEX: true
+          GDAL_HTTP_VERSION: 2
+          VSI_CACHE: true
+          VSI_CACHE_SIZE: 536870912
+          CPL_VSIL_CURL_CACHE_SIZE: 200000000
+          GDAL_INGESTED_BYTES_AT_OPEN: 32768
+          MOSAIC_CONCURRENCY: 5
+          TITILER_API_DISABLE_COG: Ref: DisableCOG
+          TITILER_API_DISABLE_STAC: Ref: DisableSTAC
+          TITILER_API_DISABLE_MOSAIC: Ref: DisableMosaic
+          TITILER_PGHOST: Ref: PGHost
+          TITILER_PGDATABASE: Ref: PGDatabase
+          TITILER_PGPORT: Ref: PGPort
+          TITILER_PGUSER: Ref: PGUser
+          TITILER_PGPASSWORD: Ref: PGPassword
+      Events:
+        API:
+          Type: HttpApi
+Outputs:
+  LambdaFunc:
+    Description: Lambda Fucntion ARN
+    Value:
+      Fn::GetAtt:
+      - TiTiler
+      - Arn
+  Api:
+    Description: Endpoint URL
+    Value:
+      Fn::Sub: https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
