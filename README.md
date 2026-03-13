@@ -66,7 +66,7 @@ In the same region you created the Lambda layer, use the AWS Console to navigate
 4. Update the parameters for your pgstac instance*
 5. Add any tags or other optional items
 6. Check the acknowledgement boxes
-7. Review the stack and hit create.  
+7. Review the stack and hit submit.  
 
 \*Be sure to update any other variable settings.  You'll need to enable stac and mosaic if you want to use those, obviously.
 
